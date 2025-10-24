@@ -50,6 +50,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
 		os.Exit(1)
 	}
+	defer sftp.Close()
 
 	fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
 }
