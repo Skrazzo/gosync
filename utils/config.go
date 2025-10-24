@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"encoding/json"
@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 )
 
-const ConfigFileName = ".gosync.json"
+const FileName = ".gosync.json"
 
 // Config represents the gosync configuration
 type Config struct {
-	LocalDir       string `json:"localDir"`
 	Host           string `json:"host"`
 	User           string `json:"user"`
 	AuthType       string `json:"authType"` // "password" or "key"
@@ -20,28 +19,27 @@ type Config struct {
 	RemoteDir      string `json:"remoteDir"`
 }
 
-// LoadConfig loads configuration from .gosync.json in the current directory
-func LoadConfig() (*Config, error) {
-	configPath := filepath.Join(".", ConfigFileName)
+// Load loads configuration from .gosync.json in the current directory
+func (c *Config) Load() error {
+	configPath := filepath.Join(".", FileName)
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("invalid config file: %w", err)
+	if err := json.Unmarshal(data, c); err != nil {
+		return fmt.Errorf("invalid config file: %w", err)
 	}
 
-	return &config, nil
+	return nil
 }
 
-// SaveConfig saves configuration to .gosync.json in the current directory
-func SaveConfig(config *Config) error {
-	configPath := filepath.Join(".", ConfigFileName)
+// Save saves configuration to .gosync.json in the current directory
+func (c *Config) Save() error {
+	configPath := filepath.Join(".", FileName)
 
-	data, err := json.MarshalIndent(config, "", "  ")
+	data, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -49,18 +47,15 @@ func SaveConfig(config *Config) error {
 	return os.WriteFile(configPath, data, 0600) // Restricted permissions for security
 }
 
-// ConfigExists checks if .gosync.json exists in the current directory
-func ConfigExists() bool {
-	configPath := filepath.Join(".", ConfigFileName)
+// Exists checks if .gosync.json exists in the current directory
+func (c *Config) Exists() bool {
+	configPath := filepath.Join(".", FileName)
 	_, err := os.Stat(configPath)
 	return err == nil
 }
 
 // Validate checks if the configuration is valid
 func (c *Config) Validate() error {
-	if c.LocalDir == "" {
-		return fmt.Errorf("localDir is required")
-	}
 	if c.Host == "" {
 		return fmt.Errorf("host is required")
 	}
@@ -81,4 +76,18 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// New creates a new Config instance
+func New() *Config {
+	return &Config{}
+}
+
+// NewFromFile creates a new Config instance and loads it from disk
+func NewFromFile() (*Config, error) {
+	c := New()
+	if err := c.Load(); err != nil {
+		return nil, err
+	}
+	return c, nil
 }

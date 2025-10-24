@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"gosync/forms"
+	"gosync/utils"
+
 	"github.com/rivo/tview"
 )
 
@@ -11,42 +14,35 @@ func main() {
 	app := tview.NewApplication()
 
 	// Check if config exists
-	if !ConfigExists() {
+	cfg := utils.New()
+	if !cfg.Exists() {
 		fmt.Println("No configuration file found. Starting setup...")
 
-		config, err := ShowSetupForm(app)
+		err := forms.SetupConfig(app, cfg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error during setup: %v\n", err)
 			os.Exit(1)
 		}
 
-		if config == nil {
-			fmt.Println("Setup cancelled.")
-			os.Exit(0)
-		}
-
-		fmt.Printf("Configuration saved to %s\n", ConfigFileName)
-		fmt.Println("Run gosync again to start synchronization.")
 		os.Exit(0)
 	}
 
 	// Load existing config
-	config, err := LoadConfig()
+	err := cfg.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Validate config
-	if err := config.Validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid config: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Printf("Loaded configuration:\n")
-	fmt.Printf("  Local:  %s\n", config.LocalDir)
-	fmt.Printf("  Remote: %s@%s:%s\n", config.User, config.Host, config.RemoteDir)
-	fmt.Printf("  Auth:   %s\n", config.AuthType)
+	fmt.Printf("  Remote: %s@%s:%s\n", cfg.User, cfg.Host, cfg.RemoteDir)
+	fmt.Printf("  Auth:   %s\n", cfg.AuthType)
 
 	// TODO: Start the main TUI interface
 	fmt.Println("\nMain TUI interface coming soon...")
