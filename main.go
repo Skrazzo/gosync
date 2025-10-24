@@ -44,6 +44,12 @@ func main() {
 	fmt.Printf("  Remote: %s@%s:%s\n", cfg.User, cfg.Host, cfg.RemoteDir)
 	fmt.Printf("  Auth:   %s\n", cfg.AuthType)
 
-	// TODO: Start the main TUI interface
-	fmt.Println("\nMain TUI interface coming soon...")
+	// Connect to remote server
+	sftp := utils.SFTP{}
+	if err := sftp.Connect(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
 }

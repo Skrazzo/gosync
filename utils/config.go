@@ -82,12 +82,3 @@ func (c *Config) Validate() error {
 func New() *Config {
 	return &Config{}
 }
-
-// NewFromFile creates a new Config instance and loads it from disk
-func NewFromFile() (*Config, error) {
-	c := New()
-	if err := c.Load(); err != nil {
-		return nil, err
-	}
-	return c, nil
-}
