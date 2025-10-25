@@ -3,6 +3,7 @@ module gosync
 go 1.25.3
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/pkg/sftp v1.13.10
 	github.com/rivo/tview v0.42.0

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -11,6 +12,10 @@ import (
 )
 
 func main() {
+	// Parse command-line flags
+	consoleMode := flag.Bool("console", false, "Run in console mode (no dashboard, just file watcher logs)")
+	flag.Parse()
+
 	app := tview.NewApplication()
 
 	// Check if config exists
@@ -45,12 +50,25 @@ func main() {
 	fmt.Printf("  Auth:   %s\n", cfg.AuthType)
 
 	// Connect to remote server
-	sftp := utils.SFTP{}
-	if err := sftp.Connect(cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
-		os.Exit(1)
-	}
-	defer sftp.Close()
+	// sftp := utils.SFTP{}
+	// if err := sftp.Connect(cfg); err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
+	// 	os.Exit(1)
+	// }
+	// defer sftp.Close()
 
-	fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
+	// fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
+
+	// Run in console mode or dashboard mode
+	if *consoleMode {
+		fmt.Println("\n=== Console Mode ===")
+		fmt.Println("Running file watcher in console mode. Press Ctrl+C to exit.\n")
+		if err := utils.StartFileWatcher(); err != nil {
+			fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		ShowView()
+	}
+
 }
