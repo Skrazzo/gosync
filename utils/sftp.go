@@ -45,6 +45,14 @@ func (s *SFTP) Connect(cfg *Config) error {
 	return nil
 }
 
+// ensureConnected checks if the SFTP client is connected
+func (s *SFTP) ensureConnected() error {
+	if s.Conn == nil {
+		return fmt.Errorf("not connected to SFTP server")
+	}
+	return nil
+}
+
 func (s *SFTP) connectWithPassword(host, user, password string) error {
 	config := &ssh.ClientConfig{
 		User: user,
@@ -70,38 +78,6 @@ func (s *SFTP) connectWithPassword(host, user, password string) error {
 
 	s.SshClient = sshConn
 	s.Conn = sftpClient
-	return nil
-}
-
-// ensureConnected checks if the SFTP client is connected
-func (s *SFTP) ensureConnected() error {
-	if s.Conn == nil {
-		return fmt.Errorf("not connected to SFTP server")
-	}
-	return nil
-}
-
-// Close properly closes both SFTP and SSH connections
-func (s *SFTP) Close() error {
-	var errs []error
-
-	if s.Conn != nil {
-		if err := s.Conn.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("error closing SFTP client: %w", err))
-		}
-		s.Conn = nil
-	}
-
-	if s.SshClient != nil {
-		if err := s.SshClient.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("error closing SSH client: %w", err))
-		}
-		s.SshClient = nil
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors closing connections: %v", errs)
-	}
 	return nil
 }
 
@@ -140,5 +116,29 @@ func (s *SFTP) connectWithKey(host, user, keyPath string) error {
 
 	s.SshClient = sshConn
 	s.Conn = sftpClient
+	return nil
+}
+
+// Close properly closes both SFTP and SSH connections
+func (s *SFTP) Close() error {
+	var errs []error
+
+	if s.Conn != nil {
+		if err := s.Conn.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("error closing SFTP client: %w", err))
+		}
+		s.Conn = nil
+	}
+
+	if s.SshClient != nil {
+		if err := s.SshClient.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("error closing SSH client: %w", err))
+		}
+		s.SshClient = nil
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors closing connections: %v", errs)
+	}
 	return nil
 }
