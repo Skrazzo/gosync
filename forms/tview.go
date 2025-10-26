@@ -23,6 +23,10 @@ func ShowView(cfg *utils.Config, sftp *utils.SFTP) {
 	headerStatus := tview.NewTextView()
 
 	render := func() {
+		// Lock mutex while reading queue
+		sftp.QueueMu.Lock()
+		defer sftp.QueueMu.Unlock()
+
 		// Render queue
 		uploadQueue.Clear()
 		for _, fileName := range sftp.Queue.Uploads {

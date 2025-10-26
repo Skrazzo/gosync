@@ -67,12 +67,16 @@ func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 			// Log specific event types
 			if event.Has(fsnotify.Write) {
 				// Add to upload queue
+				sftp.QueueMu.Lock()
 				sftp.Queue.Uploads = append(sftp.Queue.Uploads, event.Name)
+				sftp.QueueMu.Unlock()
 			}
 
 			if event.Has(fsnotify.Create) {
 				// Add to upload queue
+				sftp.QueueMu.Lock()
 				sftp.Queue.Uploads = append(sftp.Queue.Uploads, event.Name)
+				sftp.QueueMu.Unlock()
 
 				// If a new directory was created, watch it too
 				fileInfo, err := os.Stat(event.Name)
@@ -87,12 +91,16 @@ func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 
 			if event.Has(fsnotify.Remove) {
 				// Add to delete queue
+				sftp.QueueMu.Lock()
 				sftp.Queue.Deletes = append(sftp.Queue.Deletes, event.Name)
+				sftp.QueueMu.Unlock()
 			}
 
 			if event.Has(fsnotify.Rename) {
 				// Add to delete queue
+				sftp.QueueMu.Lock()
 				sftp.Queue.Deletes = append(sftp.Queue.Deletes, event.Name)
+				sftp.QueueMu.Unlock()
 			}
 
 		case _, ok := <-watcher.Errors:
