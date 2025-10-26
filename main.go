@@ -1,10 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"gosync/forms"
 	"gosync/utils"
@@ -13,10 +11,7 @@ import (
 )
 
 func main() {
-	// Parse command-line flags
-	consoleMode := flag.Bool("console", false, "Run in console mode (no dashboard, just file watcher logs)")
-	flag.Parse()
-
+	// Start tview app
 	app := tview.NewApplication()
 
 	// Check if config exists
@@ -46,10 +41,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Loaded configuration:\n")
-	fmt.Printf("  Remote: %s@%s:%s\n", cfg.User, cfg.Host, cfg.RemoteDir)
-	fmt.Printf("  Auth:   %s\n", cfg.AuthType)
-
 	// Connect to remote server
 	sftp := utils.NewSftp()
 	// if err := sftp.Connect(cfg); err != nil {
@@ -60,38 +51,14 @@ func main() {
 
 	// fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
 
-	// Run in console mode or dashboard mode
-	if *consoleMode {
-		fmt.Println("\n=== Console Mode ===")
-		fmt.Println("Running file watcher in console mode. Press Ctrl+C to exit.\n")
-
-		// Go routine to start file watcher
-		go func() {
-			if err := utils.StartFileWatcher(cfg, sftp); err != nil {
-				fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
-				os.Exit(1)
-			}
-		}()
-
-		for {
-			utils.ClearScreen()
-
-			fmt.Println("Upload queue:")
-
-			for _, file := range sftp.Queue.Uploads {
-				fmt.Printf("  %s\n", file)
-			}
-
-			fmt.Println("\nDelete queue:")
-
-			for _, file := range sftp.Queue.Deletes {
-				fmt.Printf("  %s\n", file)
-			}
-
-			time.Sleep(time.Second)
+	// Go routine to start file watcher
+	go func() {
+		if err := utils.StartFileWatcher(cfg, sftp); err != nil {
+			fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
+			os.Exit(1)
 		}
-	} else {
-		ShowView()
-	}
+	}()
 
+	// Run main dashboard
+	forms.ShowView(sftp)
 }

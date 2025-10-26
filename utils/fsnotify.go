@@ -34,7 +34,6 @@ func addDirRecursively(watcher *fsnotify.Watcher, path string, ignorePatterns []
 			if err := watcher.Add(walkPath); err != nil {
 				return fmt.Errorf("error adding directory %s: %v", walkPath, err)
 			}
-			fmt.Printf("  Watching: %s\n", walkPath)
 		}
 		return nil
 	})
@@ -49,14 +48,10 @@ func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 	defer watcher.Close()
 
 	// Add current directory and all subdirectories recursively
-	fmt.Println("Setting up file watcher...")
 	err = addDirRecursively(watcher, ".", cfg.Ignore)
 	if err != nil {
 		return fmt.Errorf("error setting up recursive watching: %v", err)
 	}
-
-	fmt.Println("\nFile watcher started. Watching all directories recursively for changes...")
-	fmt.Println("---")
 
 	// Start listening for events (blocking).
 	for {
@@ -81,12 +76,11 @@ func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 
 				// If a new directory was created, watch it too
 				fileInfo, err := os.Stat(event.Name)
+
 				if err == nil && fileInfo.IsDir() {
-					// TODO: Add to upload queue
-					fmt.Printf("  ├─ Info: New directory detected, adding to watcher\n")
 					if err := addDirRecursively(watcher, event.Name, cfg.Ignore); err != nil {
 						// TODO: Add to error list
-						fmt.Printf("  ├─ Warning: Could not add new directory to watcher: %v\n", err)
+						// fmt.Printf("  ├─ Warning: Could not add new directory to watcher: %v\n", err)
 					}
 				}
 			}
@@ -101,7 +95,7 @@ func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 				sftp.Queue.Deletes = append(sftp.Queue.Deletes, event.Name)
 			}
 
-		case err, ok := <-watcher.Errors:
+		case _, ok := <-watcher.Errors:
 			if !ok {
 				return nil
 			}
