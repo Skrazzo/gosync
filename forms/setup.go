@@ -15,6 +15,9 @@ func SetupConfig(app *tview.Application, cfg *utils.Config) error {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" gosync - Config setup ").SetTitleAlign(tview.AlignCenter)
 
+	// Empty ignore pattern
+	cfg.Ignore = []string{}
+
 	// Add input form fields
 	form.AddInputField("Remote Host", cfg.Host, 50, nil, func(text string) {
 		cfg.Host = text

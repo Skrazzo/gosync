@@ -11,12 +11,13 @@ const FileName = ".gosync.json"
 
 // Config represents the gosync configuration
 type Config struct {
-	Host           string `json:"host"`
-	User           string `json:"user"`
-	AuthType       string `json:"authType"` // "password" or "key"
-	Password       string `json:"password,omitempty"`
-	PrivateKeyPath string `json:"privateKeyPath,omitempty"`
-	RemoteDir      string `json:"remoteDir"`
+	Host           string   `json:"host"`
+	User           string   `json:"user"`
+	AuthType       string   `json:"authType"` // "password" or "key"
+	Password       string   `json:"password,omitempty"`
+	PrivateKeyPath string   `json:"privateKeyPath,omitempty"`
+	RemoteDir      string   `json:"remoteDir"`
+	Ignore         []string `json:"ignore"`
 }
 
 // Load loads configuration from .gosync.json in the current directory

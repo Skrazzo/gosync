@@ -4,15 +4,30 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
 
+// Function checks if string includes any of the patterns, and returns true if it does
+func includesPattern(str string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if strings.Contains(str, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 // addDirRecursively adds a directory and all its subdirectories to the watcher
-func addDirRecursively(watcher *fsnotify.Watcher, path string) error {
+func addDirRecursively(watcher *fsnotify.Watcher, path string, ignorePatterns []string) error {
 	return filepath.Walk(path, func(walkPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		if includesPattern(walkPath, ignorePatterns) {
+			return nil
 		}
 
 		if info.IsDir() {
@@ -25,7 +40,7 @@ func addDirRecursively(watcher *fsnotify.Watcher, path string) error {
 	})
 }
 
-func StartFileWatcher() error {
+func StartFileWatcher(cfg *Config) error {
 	// Create new watcher.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -35,7 +50,7 @@ func StartFileWatcher() error {
 
 	// Add current directory and all subdirectories recursively
 	fmt.Println("Setting up file watcher...")
-	err = addDirRecursively(watcher, ".")
+	err = addDirRecursively(watcher, ".", cfg.Ignore)
 	if err != nil {
 		return fmt.Errorf("error setting up recursive watching: %v", err)
 	}
@@ -67,7 +82,7 @@ func StartFileWatcher() error {
 				fileInfo, err := os.Stat(event.Name)
 				if err == nil && fileInfo.IsDir() {
 					fmt.Printf("  ├─ Info: New directory detected, adding to watcher\n")
-					if err := addDirRecursively(watcher, event.Name); err != nil {
+					if err := addDirRecursively(watcher, event.Name, cfg.Ignore); err != nil {
 						fmt.Printf("  ├─ Warning: Could not add new directory to watcher: %v\n", err)
 					}
 				}

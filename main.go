@@ -63,7 +63,7 @@ func main() {
 	if *consoleMode {
 		fmt.Println("\n=== Console Mode ===")
 		fmt.Println("Running file watcher in console mode. Press Ctrl+C to exit.\n")
-		if err := utils.StartFileWatcher(); err != nil {
+		if err := utils.StartFileWatcher(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
 			os.Exit(1)
 		}
