@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"gosync/forms"
 	"gosync/utils"
@@ -50,7 +51,7 @@ func main() {
 	fmt.Printf("  Auth:   %s\n", cfg.AuthType)
 
 	// Connect to remote server
-	// sftp := utils.SFTP{}
+	sftp := utils.NewSftp()
 	// if err := sftp.Connect(cfg); err != nil {
 	// 	fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
 	// 	os.Exit(1)
@@ -63,9 +64,31 @@ func main() {
 	if *consoleMode {
 		fmt.Println("\n=== Console Mode ===")
 		fmt.Println("Running file watcher in console mode. Press Ctrl+C to exit.\n")
-		if err := utils.StartFileWatcher(cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
-			os.Exit(1)
+
+		// Go routine to start file watcher
+		go func() {
+			if err := utils.StartFileWatcher(cfg, sftp); err != nil {
+				fmt.Fprintf(os.Stderr, "File watcher error: %v\n", err)
+				os.Exit(1)
+			}
+		}()
+
+		for {
+			utils.ClearScreen()
+
+			fmt.Println("Upload queue:")
+
+			for _, file := range sftp.Queue.Uploads {
+				fmt.Printf("  %s\n", file)
+			}
+
+			fmt.Println("\nDelete queue:")
+
+			for _, file := range sftp.Queue.Deletes {
+				fmt.Printf("  %s\n", file)
+			}
+
+			time.Sleep(time.Second)
 		}
 	} else {
 		ShowView()

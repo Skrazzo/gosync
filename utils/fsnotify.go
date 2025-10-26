@@ -40,7 +40,7 @@ func addDirRecursively(watcher *fsnotify.Watcher, path string, ignorePatterns []
 	})
 }
 
-func StartFileWatcher(cfg *Config) error {
+func StartFileWatcher(cfg *Config, sftp *SFTP) error {
 	// Create new watcher.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -67,39 +67,39 @@ func StartFileWatcher(cfg *Config) error {
 			}
 
 			// Log the raw event
-			fmt.Printf("[EVENT] %s\n", event)
+			// fmt.Printf("[EVENT] %s\n", event)
 
 			// Log specific event types
 			if event.Has(fsnotify.Write) {
-				fmt.Printf("  ├─ Type: WRITE\n")
-				fmt.Printf("  └─ File: %s\n", event.Name)
+				// Add to upload queue
+				sftp.Queue.Uploads = append(sftp.Queue.Uploads, event.Name)
 			}
+
 			if event.Has(fsnotify.Create) {
-				fmt.Printf("  ├─ Type: CREATE\n")
-				fmt.Printf("  └─ File: %s\n", event.Name)
+				// Add to upload queue
+				sftp.Queue.Uploads = append(sftp.Queue.Uploads, event.Name)
 
 				// If a new directory was created, watch it too
 				fileInfo, err := os.Stat(event.Name)
 				if err == nil && fileInfo.IsDir() {
+					// TODO: Add to upload queue
 					fmt.Printf("  ├─ Info: New directory detected, adding to watcher\n")
 					if err := addDirRecursively(watcher, event.Name, cfg.Ignore); err != nil {
+						// TODO: Add to error list
 						fmt.Printf("  ├─ Warning: Could not add new directory to watcher: %v\n", err)
 					}
 				}
 			}
+
 			if event.Has(fsnotify.Remove) {
-				fmt.Printf("  ├─ Type: REMOVE\n")
-				fmt.Printf("  └─ File: %s\n", event.Name)
+				// Add to delete queue
+				sftp.Queue.Deletes = append(sftp.Queue.Deletes, event.Name)
 			}
+
 			if event.Has(fsnotify.Rename) {
-				fmt.Printf("  ├─ Type: RENAME\n")
-				fmt.Printf("  └─ File: %s\n", event.Name)
+				// Add to delete queue
+				sftp.Queue.Deletes = append(sftp.Queue.Deletes, event.Name)
 			}
-			if event.Has(fsnotify.Chmod) {
-				fmt.Printf("  ├─ Type: CHMOD\n")
-				fmt.Printf("  └─ File: %s\n", event.Name)
-			}
-			fmt.Println("---")
 
 		case err, ok := <-watcher.Errors:
 			if !ok {

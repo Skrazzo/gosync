@@ -10,14 +10,23 @@ import (
 )
 
 type queue struct {
-	uploads []string
-	deletes []string
+	Uploads []string
+	Deletes []string
 }
 
 type SFTP struct {
-	queue     *queue
-	conn      *sftp.Client
-	sshClient *ssh.Client
+	Queue     *queue
+	Conn      *sftp.Client
+	SshClient *ssh.Client
+}
+
+func NewSftp() *SFTP {
+	return &SFTP{
+		Queue: &queue{
+			Uploads: make([]string, 0),
+			Deletes: make([]string, 0),
+		},
+	}
 }
 
 // Create connection to SFTP server
@@ -59,14 +68,14 @@ func (s *SFTP) connectWithPassword(host, user, password string) error {
 		return err
 	}
 
-	s.sshClient = sshConn
-	s.conn = sftpClient
+	s.SshClient = sshConn
+	s.Conn = sftpClient
 	return nil
 }
 
 // ensureConnected checks if the SFTP client is connected
 func (s *SFTP) ensureConnected() error {
-	if s.conn == nil {
+	if s.Conn == nil {
 		return fmt.Errorf("not connected to SFTP server")
 	}
 	return nil
@@ -76,18 +85,18 @@ func (s *SFTP) ensureConnected() error {
 func (s *SFTP) Close() error {
 	var errs []error
 
-	if s.conn != nil {
-		if err := s.conn.Close(); err != nil {
+	if s.Conn != nil {
+		if err := s.Conn.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("error closing SFTP client: %w", err))
 		}
-		s.conn = nil
+		s.Conn = nil
 	}
 
-	if s.sshClient != nil {
-		if err := s.sshClient.Close(); err != nil {
+	if s.SshClient != nil {
+		if err := s.SshClient.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("error closing SSH client: %w", err))
 		}
-		s.sshClient = nil
+		s.SshClient = nil
 	}
 
 	if len(errs) > 0 {
@@ -129,7 +138,7 @@ func (s *SFTP) connectWithKey(host, user, keyPath string) error {
 		return err
 	}
 
-	s.sshClient = sshConn
-	s.conn = sftpClient
+	s.SshClient = sshConn
+	s.Conn = sftpClient
 	return nil
 }
