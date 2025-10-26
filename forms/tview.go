@@ -1,28 +1,17 @@
 package forms
 
 import (
+	"fmt"
 	"gosync/utils"
 	"time"
 
 	"github.com/rivo/tview"
 )
 
-func ShowView(sftp *utils.SFTP) {
+func ShowView(cfg *utils.Config, sftp *utils.SFTP) {
 	app := tview.NewApplication()
 
 	container := tview.NewGrid().SetRows(2, 0, 1).SetColumns(0, 0).SetBorders(true)
-
-	// Add headerStatus
-	headerStatus := tview.NewTextView().SetText("gosync status: disconnected\nskrazzo@skrazzo.xyz:/home/skrazzo/gosync")
-	container.AddItem(headerStatus,
-		0,     // row
-		0,     // column
-		1,     // rowSpan
-		2,     // colSpan
-		0,     // minGridHeight
-		0,     // minGridWidth
-		false, // focus
-	)
 
 	// Title render function
 	titlePrimitive := func(title string) tview.Primitive {
@@ -31,6 +20,7 @@ func ShowView(sftp *utils.SFTP) {
 
 	uploadQueue := tview.NewList()
 	deleteQueue := tview.NewList()
+	headerStatus := tview.NewTextView()
 
 	render := func() {
 		// Render queue
@@ -45,7 +35,25 @@ func ShowView(sftp *utils.SFTP) {
 			deleteQueue.AddItem(fileName, "", 0, nil)
 		}
 
+		// Render header
+		headerStatus.SetText(fmt.Sprintf(
+			"gosync status: %s\n%s@%s:%s",
+			"disconnected",
+			cfg.User,
+			cfg.Host,
+			cfg.RemoteDir,
+		))
 	}
+
+	container.AddItem(headerStatus,
+		0,     // row
+		0,     // column
+		1,     // rowSpan
+		2,     // colSpan
+		0,     // minGridHeight
+		0,     // minGridWidth
+		false, // focus
+	)
 
 	// Render queue container
 	uploadContainer := tview.NewFlex().

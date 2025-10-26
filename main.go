@@ -60,5 +60,5 @@ func main() {
 	}()
 
 	// Run main dashboard
-	forms.ShowView(sftp)
+	forms.ShowView(cfg, sftp)
 }
