@@ -43,13 +43,11 @@ func main() {
 
 	// Connect to remote server
 	sftp := utils.NewSftp()
-	// if err := sftp.Connect(cfg); err != nil {
-	// 	fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
-	// 	os.Exit(1)
-	// }
-	// defer sftp.Close()
-
-	// fmt.Printf("Connected to %s@%s\n", cfg.User, cfg.Host)
+	if err := sftp.Connect(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error connecting to remote server: %v\n", err)
+		os.Exit(1)
+	}
+	defer sftp.Close()
 
 	// Go routine to start file watcher
 	go func() {
@@ -58,6 +56,8 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+
+	go sftp.ProcessUploadQueue()
 
 	// Run main dashboard
 	forms.ShowView(cfg, sftp)

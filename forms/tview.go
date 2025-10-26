@@ -40,9 +40,14 @@ func ShowView(cfg *utils.Config, sftp *utils.SFTP) {
 		}
 
 		// Render header
+		isConnected := "disconnected"
+		if err := sftp.EnsureConnected(); err == nil {
+			isConnected = "connected"
+		}
+
 		headerStatus.SetText(fmt.Sprintf(
 			"gosync status: %s\n%s@%s:%s",
-			"disconnected",
+			isConnected,
 			cfg.User,
 			cfg.Host,
 			cfg.RemoteDir,

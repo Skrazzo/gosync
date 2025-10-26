@@ -53,8 +53,8 @@ func (s *SFTP) Connect(cfg *Config) error {
 	return nil
 }
 
-// ensureConnected checks if the SFTP client is connected
-func (s *SFTP) ensureConnected() error {
+// EnsureConnected checks if the SFTP client is connected
+func (s *SFTP) EnsureConnected() error {
 	if s.Conn == nil {
 		return fmt.Errorf("not connected to SFTP server")
 	}
@@ -86,48 +86,6 @@ func (s *SFTP) connectWithPassword(host, user, password string) error {
 
 	s.SshClient = sshConn
 	s.Conn = sftpClient
-	return nil
-}
-
-// Upload uploads a single file to the remote server
-// localPath: relative path to the local file (e.g., "main.go" or "utils/config.go")
-// Returns error if upload fails
-func (s *SFTP) Upload(localPath string) error {
-	// Ensure we're connected
-	if err := s.ensureConnected(); err != nil {
-		return err
-	}
-
-	// Open local file for reading
-	localFile, err := os.Open(localPath)
-	if err != nil {
-		return fmt.Errorf("failed to open local file %s: %w", localPath, err)
-	}
-	defer localFile.Close()
-
-	// Construct remote path (remoteDir + localPath)
-	remotePath := filepath.Join(s.RemoteDir, localPath)
-
-	// Ensure remote directory exists
-	remoteDir := filepath.Dir(remotePath)
-	if err := s.Conn.MkdirAll(remoteDir); err != nil {
-		return fmt.Errorf("failed to create remote directory %s: %w", remoteDir, err)
-	}
-
-	// Create remote file
-	remoteFile, err := s.Conn.Create(remotePath)
-	if err != nil {
-		return fmt.Errorf("failed to create remote file %s: %w", remotePath, err)
-	}
-	defer remoteFile.Close()
-
-	// Copy file contents
-	bytesWritten, err := io.Copy(remoteFile, localFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy file contents to %s: %w", remotePath, err)
-	}
-
-	fmt.Printf("✓ Uploaded %s (%d bytes) -> %s\n", localPath, bytesWritten, remotePath)
 	return nil
 }
 
@@ -190,5 +148,91 @@ func (s *SFTP) Close() error {
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing connections: %v", errs)
 	}
+	return nil
+}
+
+// ProcessUploadQueue continuously monitors and processes the upload queue
+// This should be run as a goroutine: go sftp.ProcessUploadQueue()
+func (s *SFTP) ProcessUploadQueue() {
+	// TODO: Add ticker or sleep interval for checking queue
+	// TODO: Add deduplication logic to avoid uploading same file multiple times
+	// TODO: Add error handling and retry logic
+	// TODO: Add graceful shutdown mechanism
+
+	for {
+		// Check for connection
+		if err := s.EnsureConnected(); err != nil {
+			time.Sleep(5 * time.Second) // Wait before retrying connection
+			continue
+		}
+
+		// Lock mutex to safely access queue
+		s.QueueMu.Lock()
+
+		// Check if there are files to upload
+		if len(s.Queue.Uploads) > 0 {
+			// Get the first file from queue
+			filePath := s.Queue.Uploads[0]
+			s.QueueMu.Unlock()
+
+			// Upload the file
+			if err := s.Upload(filePath); err != nil {
+				fmt.Printf("Upload failed for %s: %v\n", filePath, err)
+				// TODO: Handle failed uploads (retry, add to error list, etc.)
+			} else {
+				// Successful upload, remove from queue
+				s.QueueMu.Lock()
+				s.Queue.Uploads = s.Queue.Uploads[1:]
+				s.QueueMu.Unlock()
+			}
+		} else {
+			// No files in queue, unlock and wait
+			s.QueueMu.Unlock()
+
+			// Sleep when queue is empty
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+}
+
+// Upload uploads a single file to the remote server
+// localPath: relative path to the local file (e.g., "main.go" or "utils/config.go")
+// Returns error if upload fails
+func (s *SFTP) Upload(localPath string) error {
+	// Ensure we're connected
+	if err := s.EnsureConnected(); err != nil {
+		return err
+	}
+
+	// Open local file for reading
+	localFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to open local file %s: %w", localPath, err)
+	}
+	defer localFile.Close()
+
+	// Construct remote path (remoteDir + localPath)
+	remotePath := filepath.Join(s.RemoteDir, localPath)
+
+	// Ensure remote directory exists
+	remoteDir := filepath.Dir(remotePath)
+	if err := s.Conn.MkdirAll(remoteDir); err != nil {
+		return fmt.Errorf("failed to create remote directory %s: %w", remoteDir, err)
+	}
+
+	// Create remote file
+	remoteFile, err := s.Conn.Create(remotePath)
+	if err != nil {
+		return fmt.Errorf("failed to create remote file %s: %w", remotePath, err)
+	}
+	defer remoteFile.Close()
+
+	// Copy file contents
+	bytesWritten, err := io.Copy(remoteFile, localFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file contents to %s: %w", remotePath, err)
+	}
+
+	fmt.Printf("✓ Uploaded %s (%d bytes) -> %s\n", localPath, bytesWritten, remotePath)
 	return nil
 }
