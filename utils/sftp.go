@@ -2,7 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -16,8 +19,10 @@ type queue struct {
 
 type SFTP struct {
 	Queue     *queue
+	QueueMu   sync.Mutex
 	Conn      *sftp.Client
 	SshClient *ssh.Client
+	RemoteDir string // Store the remote directory for uploads
 }
 
 func NewSftp() *SFTP {
@@ -41,6 +46,9 @@ func (s *SFTP) Connect(cfg *Config) error {
 			return err
 		}
 	}
+
+	// Store remote directory for uploads
+	s.RemoteDir = cfg.RemoteDir
 
 	return nil
 }
@@ -78,6 +86,48 @@ func (s *SFTP) connectWithPassword(host, user, password string) error {
 
 	s.SshClient = sshConn
 	s.Conn = sftpClient
+	return nil
+}
+
+// Upload uploads a single file to the remote server
+// localPath: relative path to the local file (e.g., "main.go" or "utils/config.go")
+// Returns error if upload fails
+func (s *SFTP) Upload(localPath string) error {
+	// Ensure we're connected
+	if err := s.ensureConnected(); err != nil {
+		return err
+	}
+
+	// Open local file for reading
+	localFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to open local file %s: %w", localPath, err)
+	}
+	defer localFile.Close()
+
+	// Construct remote path (remoteDir + localPath)
+	remotePath := filepath.Join(s.RemoteDir, localPath)
+
+	// Ensure remote directory exists
+	remoteDir := filepath.Dir(remotePath)
+	if err := s.Conn.MkdirAll(remoteDir); err != nil {
+		return fmt.Errorf("failed to create remote directory %s: %w", remoteDir, err)
+	}
+
+	// Create remote file
+	remoteFile, err := s.Conn.Create(remotePath)
+	if err != nil {
+		return fmt.Errorf("failed to create remote file %s: %w", remotePath, err)
+	}
+	defer remoteFile.Close()
+
+	// Copy file contents
+	bytesWritten, err := io.Copy(remoteFile, localFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file contents to %s: %w", remotePath, err)
+	}
+
+	fmt.Printf("✓ Uploaded %s (%d bytes) -> %s\n", localPath, bytesWritten, remotePath)
 	return nil
 }
 
